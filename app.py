@@ -354,8 +354,8 @@ def health_db():
 # ===========================================
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SMTP_USER = "nilcr94@gmail.com"
-SMTP_PASS = "etvgjtsfgwfdtuof"   # 🔒 Ideal: usar variável de ambiente!
+SMTP_USER = "mahatmag.listagens@gmail.com"
+SMTP_PASS = "gfkluhjzwfgvebie"   # 🔒 Ideal: usar variável de ambiente!
 MAIL_FROM = f"Portal do Servidor <{SMTP_USER}>"
 
 # --- Diag rápido de SMTP (opcional) ---
@@ -1000,7 +1000,7 @@ from flask import request, redirect, url_for, render_template, flash, current_ap
 from werkzeug.security import generate_password_hash
 
 # ✅ Branding (mesmo padrão do sistema)
-BRAND_SCHOOL = "E.M José Padin Mouta"
+BRAND_SCHOOL = "E.M Mahatma Gandhi"
 BRAND_SYSTEM = "Portal do Servidor"
 RESET_TOKEN_MAX_AGE = int(os.getenv("RESET_TOKEN_MAX_AGE", "3600"))  # 1 hora
 
@@ -1567,7 +1567,7 @@ def gerar_protocolo_agendamento_pdf(agendamento, usuario) -> str:
     # Canvas
     c = canvas.Canvas(pdf_path, pagesize=A4)
     c.setTitle(f"Protocolo de Agendamento {protocolo_num}")
-    c.setAuthor("E.M. José Padin Mouta")
+    c.setAuthor("E.M Mahatma Gandhi")
 
     w, h = A4
     margin = 16 * mm
@@ -1617,7 +1617,7 @@ def gerar_protocolo_agendamento_pdf(agendamento, usuario) -> str:
 
     c.setFillColor(colors.HexColor("#0F172A"))
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(text_x, title_y, "Escola Municipal José Padin Mouta")
+    c.drawString(text_x, title_y, "Escola Municipal Mahatma Gandhi")
 
     c.setFillColor(colors.HexColor("#334155"))
     c.setFont("Helvetica", 9.4)
@@ -1790,7 +1790,7 @@ def gerar_protocolo_agendamento_pdf(agendamento, usuario) -> str:
     # ==========================
     c.setFillColor(colors.HexColor("#64748B"))
     c.setFont("Helvetica", 8)
-    c.drawString(margin, 12 * mm, "E.M. José Padin Mouta • Protocolo gerado automaticamente")
+    c.drawString(margin, 12 * mm, "E.M Mahatma Gandhi • Protocolo gerado automaticamente")
     c.drawRightString(w - margin, 12 * mm, "Página 1/1")
 
     c.showPage()
@@ -2172,7 +2172,7 @@ def agendar():
                           <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;background:#FFFFFF;border-radius:14px;overflow:hidden;border:1px solid #E6E6E6;">
                             <tr>
                               <td style="padding:18px 20px;background:#0F172A;color:#FFFFFF;">
-                                <div style="font-size:14px;opacity:.9;">E.M José Padin Mouta</div>
+                                <div style="font-size:14px;opacity:.9;">E.M Mahatma Gandhi</div>
                                 <div style="font-size:20px;font-weight:800;margin-top:6px;letter-spacing:0.2px;">{title}</div>
                               </td>
                             </tr>
@@ -2196,9 +2196,9 @@ def agendar():
 
                                 <div style="margin-top:18px;border-top:1px solid #EEEEEE;padding-top:14px;color:#374151;">
                                   <p style="margin:0 0 4px 0;">Atenciosamente,</p>
-                                  <p style="margin:0;font-weight:700;">Nilson Cruz</p>
+                                  <p style="margin:0;font-weight:700;">Rubens Matheus Prates dos Santos</p>
                                   <p style="margin:0;">Secretário da Unidade Escolar</p>
-                                  <p style="margin:0;">E.M José Padin Mouta</p>
+                                  <p style="margin:0;">E.M Mahatma Gandhi</p>
                                 </div>
                               </td>
                             </tr>
@@ -2220,7 +2220,7 @@ def agendar():
             def build_email_text(subject_title, greeting_name, lead, paragraphs, summary_rows, note_lines=None):
                 note_lines = note_lines or []
                 lines = []
-                lines.append(f"E.M José Padin Mouta – {subject_title}")
+                lines.append(f"E.M Mahatma Gandhi – {subject_title}")
                 lines.append("")
                 lines.append(f"Prezado(a) Senhor(a) {greeting_name},")
                 lines.append("")
@@ -2247,9 +2247,9 @@ def agendar():
                             lines.append(f"- {n}")
                 lines.append("")
                 lines.append("Atenciosamente,")
-                lines.append("Nilson Cruz")
+                lines.append("Rubens Matheus Prates dos Santos")
                 lines.append("Secretário da Unidade Escolar")
-                lines.append("E.M José Padin Mouta")
+                lines.append("E.M Mahatma Gandhi")
                 return "\n".join(lines)
 
             resumo = [
@@ -2272,7 +2272,7 @@ def agendar():
 
             # ==== Conteúdo por motivo ====
             if tipo_folga == "LM":
-                assunto = "E.M José Padin Mouta – Comunicação de Licença Médica registrada"
+                assunto = "E.M Mahatma Gandhi – Comunicação de Licença Médica registrada"
                 title = "Comunicação de Licença Médica (LM)"
                 if dt_fim and dt_fim != dt_ini:
                     lead = f"Registramos sua comunicação de <strong>Licença Médica (LM)</strong> para o período <strong>{_escape(data_str)}</strong>."
@@ -2286,7 +2286,7 @@ def agendar():
                 notes = []
 
             elif tipo_folga == "DL":
-                assunto = "E.M José Padin Mouta – Comunicação de Dispensa Legal registrada"
+                assunto = "E.M Mahatma Gandhi – Comunicação de Dispensa Legal registrada"
                 title = "Comunicação de Dispensa Legal (DL)"
                 lead = f"Registramos sua comunicação de <strong>Dispensa Legal (DL)</strong> para <strong>{_escape(data_str)}</strong>."
                 paragraphs = [
@@ -2297,7 +2297,7 @@ def agendar():
                 notes = []
 
             elif tipo_folga == "DS":
-                assunto = "E.M José Padin Mouta – Comunicação de Doação de Sangue registrada"
+                assunto = "E.M Mahatma Gandhi – Comunicação de Doação de Sangue registrada"
                 title = "Comunicação de Doação de Sangue (DS)"
                 lead = f"Registramos sua comunicação de <strong>Doação de Sangue (DS)</strong> para <strong>{_escape(data_str)}</strong>."
                 paragraphs = [
@@ -2307,7 +2307,7 @@ def agendar():
                 notes = []
 
             elif tipo_folga == "FS":
-                assunto = "E.M José Padin Mouta – Comunicação de Falta Simples registrada"
+                assunto = "E.M Mahatma Gandhi – Comunicação de Falta Simples registrada"
                 title = "Comunicação de Falta Simples (FS)"
                 lead = f"Registramos sua comunicação de <strong>Falta Simples (FS)</strong> para <strong>{_escape(data_str)}</strong>."
                 paragraphs = [
@@ -2317,7 +2317,7 @@ def agendar():
                 notes = []
 
             elif tipo_folga == "AB":
-                assunto = "E.M José Padin Mouta – Abonada agendada"
+                assunto = "E.M Mahatma Gandhi – Abonada agendada"
                 title = "Abonada (AB) registrada"
                 lead = f"Sua <strong>Abonada (AB)</strong> para <strong>{_escape(data_str)}</strong> foi registrada com sucesso."
                 paragraphs = [
@@ -2327,7 +2327,7 @@ def agendar():
                 notes = []
 
             elif tipo_folga == "BH":
-                assunto = "E.M José Padin Mouta – Banco de Horas agendado"
+                assunto = "E.M Mahatma Gandhi – Banco de Horas agendado"
                 title = "Banco de Horas (BH) registrado"
                 lead = f"Seu <strong>Banco de Horas (BH)</strong> para <strong>{_escape(data_str)}</strong> foi registrado com sucesso."
                 paragraphs = [
@@ -2339,7 +2339,7 @@ def agendar():
                     notes.append(f"Data de referência informada: <strong>{_escape(data_ref_str)}</strong>.")
 
             elif tipo_folga == "TRE":
-                assunto = "E.M José Padin Mouta – TRE agendada"
+                assunto = "E.M Mahatma Gandhi – TRE agendada"
                 title = "TRE registrada"
                 lead = f"Sua <strong>TRE</strong> para <strong>{_escape(data_str)}</strong> foi registrada com sucesso."
                 paragraphs = [
@@ -2349,7 +2349,7 @@ def agendar():
                 notes = []
 
             else:
-                assunto = "E.M José Padin Mouta – Confirmação de Agendamento"
+                assunto = "E.M Mahatma Gandhi – Confirmação de Agendamento"
                 title = "Agendamento registrado"
                 lead = f"Sua solicitação de <strong>{_escape(descricao_motivo)}</strong> para <strong>{_escape(data_str)}</strong> foi registrada com sucesso."
                 paragraphs = [
@@ -2806,7 +2806,7 @@ def admin_agendar_para():
                           <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;background:#FFFFFF;border-radius:14px;overflow:hidden;border:1px solid #E6E6E6;">
                             <tr>
                               <td style="padding:18px 20px;background:#0F172A;color:#FFFFFF;">
-                                <div style="font-size:14px;opacity:.9;">E.M José Padin Mouta</div>
+                                <div style="font-size:14px;opacity:.9;">E.M Mahatma Gandhi</div>
                                 <div style="font-size:20px;font-weight:800;margin-top:6px;letter-spacing:0.2px;">{title}</div>
                               </td>
                             </tr>
@@ -2830,9 +2830,9 @@ def admin_agendar_para():
 
                                 <div style="margin-top:18px;border-top:1px solid #EEEEEE;padding-top:14px;color:#374151;">
                                   <p style="margin:0 0 4px 0;">Atenciosamente,</p>
-                                  <p style="margin:0;font-weight:700;">Nilson Cruz</p>
+                                  <p style="margin:0;font-weight:700;">Rubens Matheus Prates dos Santos</p>
                                   <p style="margin:0;">Secretário da Unidade Escolar</p>
-                                  <p style="margin:0;">E.M José Padin Mouta</p>
+                                  <p style="margin:0;">E.M Mahatma Gandhi</p>
                                 </div>
                               </td>
                             </tr>
@@ -2873,7 +2873,7 @@ def admin_agendar_para():
 
             # Conteúdo por motivo (com deferimento)
             if tipo_folga in ("AB", "BH", "TRE"):
-                assunto = f"E.M José Padin Mouta – {descricao_motivo} deferido(a) pela unidade"
+                assunto = f"E.M Mahatma Gandhi – {descricao_motivo} deferido(a) pela unidade"
                 title = f"{descricao_motivo} deferido(a)"
                 lead = (
                     f"A unidade escolar registrou e <strong>deferiu</strong> em seu nome "
@@ -2887,7 +2887,7 @@ def admin_agendar_para():
                 notes = []
             else:
                 # Comunicações (LM/DL/DS/FS) — “deferido” aqui é sinalização de concluído
-                assunto = f"E.M José Padin Mouta – {descricao_motivo} registrado(a) pela unidade"
+                assunto = f"E.M Mahatma Gandhi – {descricao_motivo} registrado(a) pela unidade"
                 title = f"{descricao_motivo} registrado(a)"
                 lead = (
                     f"A unidade escolar registrou em seu nome <strong>{_escape(descricao_motivo)}</strong> "
@@ -2922,7 +2922,7 @@ def admin_agendar_para():
             )
 
             mensagem_texto = (
-                f"E.M José Padin Mouta – {title}\n\n"
+                f"E.M Mahatma Gandhi – {title}\n\n"
                 f"Prezado(a) Senhor(a) {nome},\n\n"
                 f"A unidade escolar registrou em seu nome {descricao_motivo} para {data_str}.\n"
                 f"Registrado em: {solicitado_em_str}\n"
@@ -4031,7 +4031,7 @@ def deferir_folgas():
                           <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;background:#FFFFFF;border-radius:14px;overflow:hidden;border:1px solid #E6E6E6;">
                             <tr>
                               <td style="padding:18px 20px;background:#0F172A;color:#FFFFFF;">
-                                <div style="font-size:14px;opacity:.9;">E.M José Padin Mouta</div>
+                                <div style="font-size:14px;opacity:.9;">E.M Mahatma Gandhi</div>
                                 <div style="font-size:20px;font-weight:800;margin-top:6px;letter-spacing:0.2px;">{title}</div>
                               </td>
                             </tr>
@@ -4055,10 +4055,10 @@ def deferir_folgas():
 
                                 <div style="margin-top:18px;border-top:1px solid #EEEEEE;padding-top:14px;color:#374151;">
                                   <p style="margin:0 0 4px 0;">Atenciosamente,</p>
-                                  <p style="margin:0;font-weight:700;">Nilson Cruz</p>
+                                  <p style="margin:0;font-weight:700;">Rubens Matheus Prates dos Santos</p>
                                   <p style="margin:0;">Secretário da Unidade Escolar</p>
-                                  <p style="margin:0;">3496-5321</p>
-                                  <p style="margin:0;">E.M José Padin Mouta</p>
+                                  <p style="margin:0;">3496-5414</p>
+                                  <p style="margin:0;">E.M Mahatma Gandhi</p>
                                 </div>
                               </td>
                             </tr>
@@ -4079,7 +4079,7 @@ def deferir_folgas():
             def build_email_text(subject_title, greeting_name, lead, paragraphs, summary_rows, note_lines=None):
                 note_lines = note_lines or []
                 lines = []
-                lines.append(f"E.M José Padin Mouta – {subject_title}")
+                lines.append(f"E.M Mahatma Gandhi – {subject_title}")
                 lines.append("")
                 lines.append(f"Prezado(a) Senhor(a) {greeting_name},")
                 lines.append("")
@@ -4106,10 +4106,10 @@ def deferir_folgas():
                             lines.append(f"- {n}")
                 lines.append("")
                 lines.append("Atenciosamente,")
-                lines.append("Nilson Cruz")
+                lines.append("Rubens Matheus Prates dos Santos")
                 lines.append("Secretário da Unidade Escolar")
-                lines.append("3496-5321")
-                lines.append("E.M José Padin Mouta")
+                lines.append("3496-5414")
+                lines.append("E.M Mahatma Gandhi")
                 return "\n".join(lines)
 
             # Mapeamento amigável
@@ -4170,7 +4170,7 @@ def deferir_folgas():
 
             if novo_status == "deferido":
                 if folga_principal.motivo == "LM":
-                    assunto = "E.M José Padin Mouta – Ciência de Licença Médica (LM) registrada"
+                    assunto = "E.M Mahatma Gandhi – Ciência de Licença Médica (LM) registrada"
                     title = "Ciência administrativa – Licença Médica (LM)"
                     lead = (
                         f"A direção <strong>tomou ciência</strong> da sua comunicação de "
@@ -4183,7 +4183,7 @@ def deferir_folgas():
                         "No sistema, o status <strong style='color:#16A34A;'>DEFERIDO</strong> indica apenas <strong>ciência administrativa</strong>."
                     ]
                 else:
-                    assunto = "E.M José Padin Mouta – Solicitação deferida" if not motivo_comunicacao else "E.M José Padin Mouta – Ciência registrada"
+                    assunto = "E.M Mahatma Gandhi – Solicitação deferida" if not motivo_comunicacao else "E.M Mahatma Gandhi – Ciência registrada"
                     title = "Solicitação deferida" if not motivo_comunicacao else "Ciência administrativa"
                     lead = (
                         f"Sua solicitação de <strong>{_escape(descricao_motivo)}</strong> "
@@ -4196,7 +4196,7 @@ def deferir_folgas():
 
             else:
                 if motivo_comunicacao:
-                    assunto = "E.M José Padin Mouta – Atualização de registro (indeferido)"
+                    assunto = "E.M Mahatma Gandhi – Atualização de registro (indeferido)"
                     title = "Atualização de registro – Indeferido"
                     lead = (
                         f"Seu registro de <strong>{_escape(descricao_motivo)}</strong> para o período "
@@ -4211,7 +4211,7 @@ def deferir_folgas():
                     if folga_principal.motivo in ("DL", "DS", "FS"):
                         notes.append("Quando aplicável, o status no sistema é apenas sinalização/organização interna.")
                 else:
-                    assunto = "E.M José Padin Mouta – Solicitação indeferida"
+                    assunto = "E.M Mahatma Gandhi – Solicitação indeferida"
                     title = "Solicitação indeferida"
                     lead = (
                         f"Sua solicitação de <strong>{_escape(descricao_motivo)}</strong> para o período "
@@ -4444,7 +4444,7 @@ def cadastrar_horas():
                   <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;background:#FFFFFF;border-radius:14px;overflow:hidden;border:1px solid #E6E6E6;">
                     <tr>
                       <td style="padding:18px 20px;background:#0F172A;color:#FFFFFF;">
-                        <div style="font-size:14px;opacity:.9;">E.M José Padin Mouta</div>
+                        <div style="font-size:14px;opacity:.9;">E.M Mahatma Gandhi</div>
                         <div style="font-size:20px;font-weight:800;margin-top:6px;letter-spacing:0.2px;">{title}</div>
                       </td>
                     </tr>
@@ -4468,10 +4468,10 @@ def cadastrar_horas():
 
                         <div style="margin-top:18px;border-top:1px solid #EEEEEE;padding-top:14px;color:#374151;">
                           <p style="margin:0 0 4px 0;">Atenciosamente,</p>
-                          <p style="margin:0;font-weight:700;">Nilson Cruz</p>
+                          <p style="margin:0;font-weight:700;">Rubens Matheus Prates dos Santos</p>
                           <p style="margin:0;">Secretário da Unidade Escolar</p>
-                          <p style="margin:0;">3496-5321</p>
-                          <p style="margin:0;">E.M José Padin Mouta</p>
+                          <p style="margin:0;">3496-5414</p>
+                          <p style="margin:0;">E.M Mahatma Gandhi</p>
                         </div>
                       </td>
                     </tr>
@@ -4492,7 +4492,7 @@ def cadastrar_horas():
     def build_email_text(subject_title, greeting_name, lead, summary_rows, note_lines=None):
         note_lines = note_lines or []
         lines = []
-        lines.append(f"E.M José Padin Mouta – {subject_title}")
+        lines.append(f"E.M Mahatma Gandhi – {subject_title}")
         lines.append("")
         lines.append(f"Prezado(a) Senhor(a) {greeting_name},")
         lines.append("")
@@ -4513,10 +4513,10 @@ def cadastrar_horas():
                     lines.append(f"- {n}")
         lines.append("")
         lines.append("Atenciosamente,")
-        lines.append("Nilson Cruz")
+        lines.append("Rubens Matheus Prates dos Santos")
         lines.append("Secretário da Unidade Escolar")
-        lines.append("3496-5321")
-        lines.append("E.M José Padin Mouta")
+        lines.append("3496-5414")
+        lines.append("E.M Mahatma Gandhi")
         return "\n".join(lines)
 
     if request.method == 'POST':
@@ -4616,7 +4616,7 @@ def cadastrar_horas():
                 data_str = data_realizacao.strftime('%d/%m/%Y')
                 lancado_str = _format_hm(quantidade_horas, quantidade_minutos)
 
-                assunto = "E.M José Padin Mouta – Banco de Horas cadastrado (aguardando deferimento)"
+                assunto = "E.M Mahatma Gandhi – Banco de Horas cadastrado (aguardando deferimento)"
                 title = "Banco de Horas cadastrado"
                 lead = (
                     f"Seu lançamento de <strong>crédito</strong> de <strong>Banco de Horas</strong> foi registrado com sucesso e está "
@@ -4974,7 +4974,7 @@ def deferir_horas():
                   <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;background:#FFFFFF;border-radius:14px;overflow:hidden;border:1px solid #E6E6E6;">
                     <tr>
                       <td style="padding:18px 20px;background:#0F172A;color:#FFFFFF;">
-                        <div style="font-size:14px;opacity:.9;">E.M José Padin Mouta</div>
+                        <div style="font-size:14px;opacity:.9;">E.M Mahatma Gandhi</div>
                         <div style="font-size:20px;font-weight:800;margin-top:6px;letter-spacing:0.2px;">{title}</div>
                       </td>
                     </tr>
@@ -4998,10 +4998,10 @@ def deferir_horas():
 
                         <div style="margin-top:18px;border-top:1px solid #EEEEEE;padding-top:14px;color:#374151;">
                           <p style="margin:0 0 4px 0;">Atenciosamente,</p>
-                          <p style="margin:0;font-weight:700;">Nilson Cruz</p>
+                          <p style="margin:0;font-weight:700;">Rubens Matheus Prates dos Santos</p>
                           <p style="margin:0;">Secretário da Unidade Escolar</p>
-                          <p style="margin:0;">3496-5321</p>
-                          <p style="margin:0;">E.M José Padin Mouta</p>
+                          <p style="margin:0;">3496-5414</p>
+                          <p style="margin:0;">E.M Mahatma Gandhi</p>
                         </div>
                       </td>
                     </tr>
@@ -5022,7 +5022,7 @@ def deferir_horas():
     def build_email_text(subject_title, greeting_name, lead, summary_rows, note_lines=None):
         note_lines = note_lines or []
         lines = []
-        lines.append(f"E.M José Padin Mouta – {subject_title}")
+        lines.append(f"E.M Mahatma Gandhi – {subject_title}")
         lines.append("")
         lines.append(f"Prezado(a) Senhor(a) {greeting_name},")
         lines.append("")
@@ -5043,10 +5043,10 @@ def deferir_horas():
                     lines.append(f"- {n}")
         lines.append("")
         lines.append("Atenciosamente,")
-        lines.append("Nilson Cruz")
+        lines.append("Rubens Matheus Prates dos Santos")
         lines.append("Secretário da Unidade Escolar")
-        lines.append("3496-5321")
-        lines.append("E.M José Padin Mouta")
+        lines.append("3496-5414")
+        lines.append("E.M Mahatma Gandhi")
         return "\n".join(lines)
 
     registros = BancoDeHoras.query.filter_by(status='Horas a Serem Deferidas').all()
@@ -5114,7 +5114,7 @@ def deferir_horas():
                 ) or 0
                 pendentes_qtd = int(pendentes_qtd)
 
-                assunto = f"E.M José Padin Mouta – Banco de Horas {decisao.lower()}"
+                assunto = f"E.M Mahatma Gandhi – Banco de Horas {decisao.lower()}"
                 title = f"Banco de Horas {decisao}"
 
                 if decisao == "DEFERIDO":
@@ -5318,7 +5318,7 @@ def send_email_change_confirmation(user, new_email: str) -> None:
 
                     <div style="margin-top:18px;border-top:1px solid #EEEEEE;padding-top:14px;color:#374151;">
                       <p style="margin:0 0 4px 0;">Atenciosamente,</p>
-                      <p style="margin:0;font-weight:700;">E.M José Padin Mouta</p>
+                      <p style="margin:0;font-weight:700;">E.M Mahatma Gandhi</p>
                     </div>
                   </td>
                 </tr>

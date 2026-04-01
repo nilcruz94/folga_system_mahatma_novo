@@ -2,26 +2,16 @@ services:
   app:
     build:
       context: .
-    container_name: folgas-app
+    container_name: folgas-mahatma-app
     ports:
-      - "8000:8000"
+      - "8001:8000"
 
-    # Carrega variáveis do seu .env (NÃO COMMITAR)
     env_file:
       - .env
 
-    # Monta seu código dentro do container (mudou arquivo => reflete na hora)
     volumes:
       - .:/app
-
-      # (Opcional, mas recomendo MUITO)
-      # Simula o Render Disk localmente, mantendo uploads persistentes fora do container:
       - ./render_disk:/var/data
 
-    # DEV: Flask com reloader (não precisa rebuild pra mudar template/js/css)
     command: >
       sh -c "python -m flask --app app.py run --host=0.0.0.0 --port ${PORT:-8000} --debug"
-
-    # Alternativa (se você preferir gunicorn mesmo em dev):
-    # command: >
-    #   sh -c "gunicorn -b 0.0.0.0:${PORT:-8000} app:app --reload --workers 1 --threads 4 --timeout 1800 --access-logfile - --error-logfile -"
