@@ -2585,6 +2585,11 @@ def admin_agendar_para():
         total_minutos = (horas * 60) + minutos
 
         if tipo_folga == 'BH':
+            usuario_alvo = User.query.filter_by(id=usuario_alvo.id, ativo=True).with_for_update().first()
+            if not usuario_alvo:
+                flash("Selecione um usuário ATIVO válido.", "danger")
+                return redirect(url_for('admin_agendar_para'))
+
             if minutos < 0 or minutos > 59 or horas < 0 or total_minutos == 0:
                 flash("Informe um tempo válido para Banco de Horas (minutos entre 0 e 59 e total > 0).", "danger")
                 return redirect(url_for('admin_agendar_para'))
@@ -3279,9 +3284,13 @@ def aprovar_usuarios():
 @app.route('/delete_agendamento/<int:id>', methods=['POST'])
 @login_required
 def delete_agendamento(id):
-    agendamento = Agendamento.query.get_or_404(id)
+    agendamento = Agendamento.query.filter_by(id=id).with_for_update().first_or_404()
 
     if agendamento.funcionario_id == current_user.id:
+        is_bh = (agendamento.motivo or '').upper() == 'BH' or (agendamento.tipo_folga or '').upper() == 'BH'
+        if is_bh and (agendamento.status or '').lower() == 'deferido':
+            flash('Uma folga de Banco de Horas deferida só pode ser alterada pela administração.', 'danger')
+            return redirect(url_for('minhas_justificativas'))
         db.session.delete(agendamento)
         db.session.commit()
         flash('Agendamento excluído com sucesso.', 'success')
@@ -3694,6 +3703,10 @@ from sqlalchemy import asc, func
 @app.route('/deferir_folgas', methods=['GET', 'POST'])
 @login_required
 def deferir_folgas():
+    if current_user.tipo != 'administrador':
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('banco_horas'))
+
     # ---------- helpers ----------
     def _get_dt_ini(ag):
         return getattr(ag, "data", None)
@@ -3875,9 +3888,9 @@ def deferir_folgas():
 
     # ---------- POST ----------
     if request.method == 'POST':
-        folga_id = request.form.get('folga_id')
+        folga_id = request.form.get('folga_id', type=int)
         novo_status = (request.form.get('status') or "").strip().lower()
-        folga = Agendamento.query.get(folga_id)
+        folga = Agendamento.query.filter_by(id=folga_id).with_for_update().first() if folga_id else None
 
         if not folga:
             flash("Agendamento não encontrado.", "danger")
@@ -3887,7 +3900,10 @@ def deferir_folgas():
             flash("Status inválido.", "danger")
             return redirect(url_for('deferir_folgas'))
 
-        usuario = User.query.get(folga.funcionario_id)
+        usuario = User.query.filter_by(id=folga.funcionario_id).with_for_update().first()
+        if not usuario:
+            flash('Servidor não encontrado.', 'danger')
+            return redirect(url_for('deferir_folgas'))
 
         # ==========================================================
         # ✅ NOVO: se for LM em LOTE => atualiza TODOS do lote
@@ -3906,19 +3922,26 @@ def deferir_folgas():
         else:
             folga_principal = folga
 
-        # Banco de horas: ao deferir, debita saldo e registra movimento (mantém como era)
-        # (não aplica para lote LM)
-        if not lote_regs and folga.motivo == 'BH' and novo_status == 'deferido':
+        is_bh = not lote_regs and (
+            (folga.motivo or '').upper() == 'BH' or (folga.tipo_folga or '').upper() == 'BH'
+        )
+        status_anterior = (folga.status or '').strip().lower()
+        if is_bh and status_anterior == novo_status:
+            flash('Esta folga de Banco de Horas já recebeu essa decisão.', 'warning')
+            return redirect(url_for('deferir_folgas'))
+
+        # Aplica o saldo apenas na transição de status, uma vez por decisão.
+        if is_bh and novo_status == 'deferido':
             total_minutos = (folga.horas or 0) * 60 + (folga.minutos or 0)
             if (usuario.banco_horas or 0) >= total_minutos:
-                usuario.banco_horas -= total_minutos
+                usuario.banco_horas = int(usuario.banco_horas or 0) - total_minutos
                 novo_banco_horas = BancoDeHoras(
                     funcionario_id=usuario.id,
                     horas=folga.horas or 0,
                     minutos=folga.minutos or 0,
                     total_minutos=total_minutos,
                     data_realizacao=folga.data,
-                    motivo=folga.motivo,
+                    motivo='BH',
                     status="Deferida",
                     data_criacao=datetime.datetime.utcnow(),
                 )
@@ -3926,6 +3949,9 @@ def deferir_folgas():
             else:
                 flash("O funcionário não tem horas suficientes no banco de horas para este agendamento.", "danger")
                 return redirect(url_for('deferir_folgas'))
+        elif is_bh and status_anterior == 'deferido' and novo_status == 'indeferido':
+            total_minutos = (folga.horas or 0) * 60 + (folga.minutos or 0)
+            usuario.banco_horas = int(usuario.banco_horas or 0) + total_minutos
 
         # Atualiza status (single ou lote)
         if lote_regs:
@@ -4772,32 +4798,32 @@ def _normalize_status_bh(raw: str) -> str:
         return "Em análise"
     return "Em análise"
 
-def _recalcular_saldo_minutos(funcionario_id: int):
+def _recalcular_saldo_minutos(funcionario_id: int, usuario: User):
     creditos_min = (
         db.session.query(
-            func.coalesce(func.sum(BancoDeHoras.horas * 60 + BancoDeHoras.minutos), 0)
+            func.coalesce(func.sum(BancoDeHoras.total_minutos), 0)
         )
         .filter(BancoDeHoras.funcionario_id == funcionario_id)
         .filter(func.lower(BancoDeHoras.status).like('deferid%'))
-        .filter(func.upper(BancoDeHoras.motivo) != 'BH')
+        .filter(func.upper(func.coalesce(BancoDeHoras.motivo, '')) != 'BH')
         .scalar()
     )
 
     debitos_min = (
         db.session.query(
-            func.coalesce(func.sum(Agendamento.horas * 60 + Agendamento.minutos), 0)
+            func.coalesce(func.sum(func.coalesce(Agendamento.horas, 0) * 60 + func.coalesce(Agendamento.minutos, 0)), 0)
         )
         .filter(Agendamento.funcionario_id == funcionario_id)
         .filter(func.lower(Agendamento.status).like('deferid%'))
-        .filter(func.lower(Agendamento.motivo) == 'bh')
+        .filter(
+            (func.upper(func.coalesce(Agendamento.motivo, '')) == 'BH')
+            | (func.upper(func.coalesce(Agendamento.tipo_folga, '')) == 'BH')
+        )
         .scalar()
     )
 
-    saldo = int(creditos_min) - int(debitos_min)
-    u = User.query.get(funcionario_id)
-    if u:
-        u.banco_horas = saldo
-        db.session.commit()
+    saldo = max(int(usuario.banco_horas or 0), int(creditos_min) - int(debitos_min))
+    usuario.banco_horas = saldo
     return saldo
 
 @app.route('/banco_horas/inserir', methods=['GET', 'POST'])
@@ -4854,6 +4880,11 @@ def inserir_bh_admin():
 
         status = _normalize_status_bh(status_raw)
 
+        usuario = User.query.filter_by(id=funcionario_id, ativo=True).with_for_update().first()
+        if not usuario:
+            flash("Selecione um servidor ativo válido.", "warning")
+            return redirect(url_for('inserir_bh_admin'))
+
         novo = BancoDeHoras(
             funcionario_id=funcionario_id,
             horas=horas,
@@ -4864,10 +4895,16 @@ def inserir_bh_admin():
             motivo=motivo,
             usufruido=False,
         )
-        db.session.add(novo)
-        db.session.commit()
-
-        saldo = _recalcular_saldo_minutos(funcionario_id)
+        try:
+            db.session.add(novo)
+            db.session.flush()
+            saldo = _recalcular_saldo_minutos(funcionario_id, usuario)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception("Falha ao inserir crédito administrativo de BH para o servidor %s", funcionario_id)
+            flash("Não foi possível inserir o crédito de Banco de Horas.", "danger")
+            return redirect(url_for('inserir_bh_admin'))
 
         flash(
             f"Crédito inserido com sucesso ({horas}h {minutos:02d}m para o servidor #{funcionario_id}). "
@@ -4895,10 +4932,9 @@ def inserir_bh_admin():
 @app.route('/banco_horas/deferir', methods=['GET', 'POST'])
 @login_required
 def deferir_horas():
-    # Se você quiser restringir só admin, descomente:
-    # if current_user.tipo != 'administrador':
-    #     flash("Acesso negado.", "danger")
-    #     return redirect(url_for('banco_horas'))
+    if current_user.tipo != 'administrador':
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('banco_horas'))
 
     def _escape(s):
         if s is None:
@@ -5054,15 +5090,19 @@ def deferir_horas():
     registros = BancoDeHoras.query.filter_by(status='Horas a Serem Deferidas').all()
 
     if request.method == 'POST':
-        registro_id = request.form.get('registro_id')
+        registro_id = request.form.get('registro_id', type=int)
         action = (request.form.get('action') or '').strip().lower()
 
-        banco_horas = BancoDeHoras.query.filter_by(id=registro_id).first()
+        banco_horas = BancoDeHoras.query.filter_by(id=registro_id).with_for_update().first() if registro_id else None
         if not banco_horas:
             flash("Registro não encontrado.", "danger")
             return redirect(url_for('deferir_horas'))
 
-        funcionario = User.query.get(banco_horas.funcionario_id)
+        if banco_horas.status != 'Horas a Serem Deferidas':
+            flash('Este lançamento de Banco de Horas já recebeu uma decisão.', 'warning')
+            return redirect(url_for('deferir_horas'))
+
+        funcionario = User.query.filter_by(id=banco_horas.funcionario_id).with_for_update().first()
         if not funcionario:
             flash("Servidor não encontrado.", "danger")
             return redirect(url_for('deferir_horas'))
@@ -5941,7 +5981,13 @@ def admin_delete_agendamento(id):
         return jsonify({"error": "CSRF inválido ou ausente."}), 400
 
     try:
-        agendamento = Agendamento.query.get_or_404(id)
+        agendamento = Agendamento.query.filter_by(id=id).with_for_update().first_or_404()
+        is_bh = (agendamento.motivo or '').upper() == 'BH' or (agendamento.tipo_folga or '').upper() == 'BH'
+        if is_bh and (agendamento.status or '').lower() == 'deferido':
+            usuario = User.query.filter_by(id=agendamento.funcionario_id).with_for_update().first()
+            if usuario:
+                minutos = (agendamento.horas or 0) * 60 + (agendamento.minutos or 0)
+                usuario.banco_horas = int(usuario.banco_horas or 0) + minutos
         db.session.delete(agendamento)
         db.session.commit()
         return jsonify({"success": True, "message": "Agendamento excluído com sucesso."})
