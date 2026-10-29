@@ -1,9 +1,18 @@
 import datetime
 import os
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from unittest import mock
+from urllib.parse import urlparse
 
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+test_database_url = os.environ.get("BH_TEST_DATABASE_URL")
+if test_database_url:
+    parsed = urlparse(test_database_url)
+    if (not parsed.scheme.startswith("postgres") or
+            parsed.hostname not in {"127.0.0.1", "localhost"} or
+            parsed.path != "/postgres"):
+        raise RuntimeError("BH_TEST_DATABASE_URL deve apontar para PostgreSQL local isolado.")
+os.environ["DATABASE_URL"] = test_database_url or "sqlite:///:memory:"
 os.environ["FLASK_ENV"] = "development"
 os.environ["SECRET_KEY"] = "bh-test-key"
 os.environ["SECURITY_PASSWORD_SALT"] = "bh-test-salt"
@@ -221,6 +230,165 @@ class BancoDeHorasDecisionsTest(unittest.TestCase):
             },
         )
         self.assertEqual(system.db.session.get(system.User, self.staff.id).banco_horas, 180)
+
+    def test_balance_calculation_preserves_higher_saved_amount(self):
+        credit = system.BancoDeHoras(
+            funcionario_id=self.staff.id,
+            horas=2,
+            minutos=0,
+            total_minutos=120,
+            data_realizacao=datetime.date(2026, 10, 27),
+            status="Deferido",
+            motivo="Trabalho adicional",
+        )
+        system.db.session.add(credit)
+        system.db.session.commit()
+
+        shadow = system.BancoDeHoras(
+            funcionario_id=self.staff.id,
+            horas=1,
+            minutos=0,
+            total_minutos=60,
+            data_realizacao=datetime.date(2026, 10, 28),
+            status="Deferida",
+            motivo="BH",
+        )
+        system.db.session.add(shadow)
+        system.db.session.commit()
+
+        self.staff.banco_horas = 10
+        system.db.session.commit()
+        low = system._calcular_bh_usuario(self.staff.id, self.staff)
+        self.assertEqual((low['saldo_calculado_min'], low['saldo_utilizavel_min']), (120, 120))
+
+        self.staff.banco_horas = 180
+        system.db.session.commit()
+        high = system._calcular_bh_usuario(self.staff.id, self.staff)
+        self.assertEqual((high['saldo_calculado_min'], high['saldo_utilizavel_min']), (120, 180))
+
+    def test_audit_is_admin_only(self):
+        self._login(self.staff)
+        self.assertEqual(self.client.get('/banco_horas/auditoria').status_code, 302)
+
+    def test_audit_is_read_only(self):
+        self.staff.banco_horas = 10
+        system.db.session.add(system.BancoDeHoras(
+            funcionario_id=self.staff.id,
+            horas=2,
+            minutos=0,
+            total_minutos=120,
+            data_realizacao=datetime.date(2026, 10, 28),
+            status="Deferido",
+            motivo="Trabalho adicional",
+        ))
+        system.db.session.commit()
+        self._login(self.admin)
+        response = self.client.get('/banco_horas/auditoria?filtro=gravado_menor&q=Servidor')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'<span class="name">Servidor</span>', response.data)
+        self.assertIn(b'class="state state-gravado_menor"', response.data)
+        self.assertNotIn(b'method="POST"', response.data)
+        self.assertEqual(self.client.post('/banco_horas/auditoria').status_code, 405)
+        self.assertEqual(system.db.session.get(system.User, self.staff.id).banco_horas, 10)
+        self.assertNotIn(
+            b'<span class="name">Servidor</span>',
+            self.client.get('/banco_horas/auditoria?filtro=ok').data,
+        )
+        self.assertIn(b'/banco_horas/auditoria', self.client.get('/banco_horas').data)
+
+    def test_repeated_staff_bh_request_creates_one_appointment(self):
+        self._login(self.staff)
+        payload = {
+            'tipo_folga': 'BH', 'motivo': 'BH', 'data': '2026-10-28',
+            'quantidade_horas': '1', 'quantidade_minutos': '0',
+        }
+        first = self.client.post('/agendar', data=payload)
+        second = self.client.post('/agendar', data=payload)
+        self.assertLess(first.status_code, 400)
+        self.assertEqual(second.status_code, 302)
+        self.assertEqual(system.Agendamento.query.filter_by(funcionario_id=self.staff.id, motivo='BH').count(), 1)
+
+    def test_repeated_admin_bh_request_debits_once(self):
+        self._login(self.admin)
+        payload = {
+            'user_id': self.staff.id, 'tipo_folga': 'BH', 'motivo': 'BH',
+            'data': '2026-10-28', 'quantidade_horas': '1', 'quantidade_minutos': '0',
+        }
+        first = self.client.post('/admin/agendar_para', data=payload)
+        second = self.client.post('/admin/agendar_para', data=payload)
+        self.assertLess(first.status_code, 400)
+        self.assertEqual(second.status_code, 302)
+        self.assertEqual(system.Agendamento.query.filter_by(funcionario_id=self.staff.id, motivo='BH').count(), 1)
+        self.assertEqual(system.db.session.get(system.User, self.staff.id).banco_horas, 60)
+
+    def test_second_identical_pending_request_cannot_be_deferred(self):
+        first = self._agendamento(status='deferido')
+        second = self._agendamento(status='em_espera')
+        self.staff.banco_horas = 60
+        system.db.session.commit()
+        self._login(self.admin)
+
+        response = self.client.post(
+            '/deferir_folgas', data={'folga_id': second.id, 'status': 'deferido'}
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(system.db.session.get(system.Agendamento, first.id).status, 'deferido')
+        self.assertEqual(system.db.session.get(system.Agendamento, second.id).status, 'em_espera')
+        self.assertEqual(system.db.session.get(system.User, self.staff.id).banco_horas, 60)
+
+    def test_parallel_decisions_debit_once_on_postgresql(self):
+        if system.db.engine.dialect.name != "postgresql":
+            self.skipTest("FOR UPDATE exige PostgreSQL para teste de concorrencia")
+
+        agendamento = self._agendamento()
+        agendamento_id = agendamento.id
+        clients = [system.app.test_client(), system.app.test_client()]
+        for client in clients:
+            with client.session_transaction() as session:
+                session["_user_id"] = str(self.admin.id)
+                session["_fresh"] = True
+
+        def decide(client):
+            return client.post(
+                "/deferir_folgas",
+                data={"folga_id": agendamento_id, "status": "deferido"},
+            ).status_code
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            statuses = list(pool.map(decide, clients))
+
+        system.db.session.expire_all()
+        self.assertEqual(sorted(statuses), [200, 302])
+        self.assertEqual(system.db.session.get(system.User, self.staff.id).banco_horas, 60)
+        self.assertEqual(
+            system.BancoDeHoras.query.filter_by(funcionario_id=self.staff.id, motivo="BH").count(),
+            1,
+        )
+
+    def test_parallel_admin_requests_create_one_bh_appointment_on_postgresql(self):
+        if system.db.engine.dialect.name != "postgresql":
+            self.skipTest("FOR UPDATE exige PostgreSQL para teste de concorrencia")
+
+        clients = [system.app.test_client(), system.app.test_client()]
+        for client in clients:
+            with client.session_transaction() as session:
+                session["_user_id"] = str(self.admin.id)
+                session["_fresh"] = True
+        payload = {
+            "user_id": self.staff.id, "tipo_folga": "BH", "motivo": "BH",
+            "data": "2026-10-28", "quantidade_horas": "1", "quantidade_minutos": "0",
+        }
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            statuses = list(pool.map(lambda client: client.post(
+                "/admin/agendar_para", data=payload,
+            ).status_code, clients))
+
+        system.db.session.expire_all()
+        self.assertTrue(all(status < 400 for status in statuses))
+        self.assertEqual(system.Agendamento.query.filter_by(funcionario_id=self.staff.id, motivo="BH").count(), 1)
+        self.assertEqual(system.db.session.get(system.User, self.staff.id).banco_horas, 60)
 
 
 if __name__ == "__main__":

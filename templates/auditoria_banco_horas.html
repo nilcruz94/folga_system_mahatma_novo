@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auditoria de Banco de Horas - E.M Mahatma Gandhi</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; background: #f3f6fa; color: #182334; font-family: Montserrat, sans-serif; font-size: 14px; }
+    a { color: inherit; }
+    .topbar { background: #007bff; color: #fff; box-shadow: 0 2px 7px rgba(20, 35, 55, .14); }
+    .topbar-inner { max-width: 1280px; min-height: 72px; margin: auto; padding: 10px 22px; display: flex; align-items: center; gap: 16px; }
+    .topbar img { width: 46px; height: 46px; object-fit: contain; background: #fff; border-radius: 6px; padding: 4px; }
+    .topbar-title { min-width: 0; font-size: 16px; font-weight: 700; line-height: 1.25; }
+    .back { margin-left: auto; display: inline-flex; flex: 0 0 38px; width: 38px; height: 38px; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.7); border-radius: 6px; text-decoration: none; }
+    .back:hover, .back:focus { background: rgba(255,255,255,.14); color: #fff; }
+    main { width: 100%; max-width: 1280px; margin: 0 auto; padding: 28px 22px 48px; flex: 1; }
+    h1 { margin: 0; font-size: 22px; line-height: 1.3; }
+    .lead { max-width: 100%; margin: 7px 0 23px; color: #526174; font-size: 13px; overflow-wrap: anywhere; }
+    .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: #fff; border: 1px solid #dce4ed; border-radius: 7px; margin-bottom: 22px; }
+    .metric { min-width: 0; padding: 15px 18px; border-right: 1px solid #e6ecf2; }
+    .metric:last-child { border-right: 0; }
+    .metric-label { display: block; font-size: 11px; color: #526174; margin-bottom: 7px; }
+    .metric strong { font-size: 22px; line-height: 1; font-weight: 700; }
+    .metric .alert { color: #b34b17; }
+    .filters { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(170px, 240px) auto auto; align-items: end; gap: 12px; margin-bottom: 18px; }
+    .field label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; }
+    .field input, .field select { width: 100%; min-height: 40px; padding: 8px 11px; border: 1px solid #b9c7d6; border-radius: 6px; background: #fff; color: #182334; font: inherit; }
+    .field input:focus, .field select:focus { outline: 2px solid #007bff; outline-offset: 1px; }
+    .checkbox { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; white-space: nowrap; font-weight: 600; font-size: 12px; }
+    .checkbox input { width: 16px; height: 16px; accent-color: #007bff; }
+    .filter-button { min-height: 40px; padding: 0 17px; border: 0; border-radius: 6px; background: #007bff; color: #fff; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .filter-button:hover { background: #0061cb; }
+    .result-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 9px; }
+    .result-heading h2 { margin: 0; font-size: 15px; }
+    .result-heading span { color: #526174; font-size: 12px; }
+    .table-wrap { overflow-x: auto; background: #fff; border: 1px solid #dce4ed; border-radius: 7px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    table { width: 100%; min-width: 1020px; border-collapse: collapse; font-size: 12px; }
+    th { padding: 12px 10px; background: #edf3f9; color: #34465a; font-weight: 700; text-align: right; white-space: nowrap; }
+    td { padding: 12px 10px; border-top: 1px solid #e7edf3; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    th:first-child, td:first-child { text-align: left; padding-left: 16px; }
+    tr:hover td { background: #f7fafc; }
+    .name { display: block; font-weight: 700; white-space: normal; min-width: 170px; }
+    .registry { display: block; color: #627184; font-size: 11px; margin-top: 3px; }
+    .state { display: inline-block; padding: 5px 8px; border-radius: 4px; font-weight: 700; white-space: nowrap; }
+    .state-ok { background: #e4f5e9; color: #176535; }
+    .state-gravado_menor { background: #e5f0ff; color: #1559a0; }
+    .state-gravado_maior, .state-calculado_negativo { background: #fff0e3; color: #9b4516; }
+    .delta-positive { color: #1559a0; font-weight: 700; }
+    .delta-negative { color: #9b4516; font-weight: 700; }
+    .empty { padding: 32px 18px; text-align: center; color: #526174; }
+    .empty i { display: block; margin-bottom: 10px; font-size: 22px; color: #4b9e66; }
+    footer { padding: 15px; background: #303a45; color: #e5eaf0; text-align: center; font-size: 11px; }
+    @media (max-width: 800px) {
+      main { padding: 22px 13px 40px; }
+      .topbar-inner { padding: 10px 13px; }
+      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n+2) { border-bottom: 1px solid #e6ecf2; }
+      .filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+      .checkbox { align-self: center; }
+    }
+    @media (max-width: 520px) {
+      h1 { font-size: 19px; }
+      .topbar-title { font-size: 14px; }
+      .filters { grid-template-columns: 1fr; }
+      .filter-button { width: 100%; }
+      .metric { padding: 13px; }
+      .metric strong { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo da escola">
+      <span class="topbar-title">E.M Mahatma Gandhi<br>Banco de Horas</span>
+      <a class="back" href="{{ url_for('banco_horas') }}" title="Voltar ao Banco de Horas" aria-label="Voltar ao Banco de Horas"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+    </div>
+  </header>
+  <main>
+    <h1>Auditoria de Banco de Horas</h1>
+    <p class="lead">Somente leitura. Divergências exigem conferência antes de qualquer ajuste.</p>
+
+    <section class="summary" aria-label="Resumo da auditoria">
+      <div class="metric"><span class="metric-label">Servidores consultados</span><strong>{{ totais.consultados }}</strong></div>
+      <div class="metric"><span class="metric-label">Divergências</span><strong class="alert">{{ totais.divergentes }}</strong></div>
+      <div class="metric"><span class="metric-label">Gravado menor</span><strong>{{ totais.gravado_menor }}</strong></div>
+      <div class="metric"><span class="metric-label">Gravado maior</span><strong>{{ totais.gravado_maior }}</strong></div>
+    </section>
+
+    <form class="filters" method="GET" action="{{ url_for('auditoria_banco_horas') }}">
+      <div class="field"><label for="q">Servidor, registro ou e-mail</label><input id="q" name="q" type="search" value="{{ busca }}"></div>
+      <div class="field"><label for="filtro">Situação</label><select id="filtro" name="filtro">
+        <option value="divergentes" {% if filtro == 'divergentes' %}selected{% endif %}>Divergentes</option>
+        <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos</option>
+        <option value="gravado_menor" {% if filtro == 'gravado_menor' %}selected{% endif %}>Gravado menor</option>
+        <option value="gravado_maior" {% if filtro == 'gravado_maior' %}selected{% endif %}>Gravado maior</option>
+        <option value="calculado_negativo" {% if filtro == 'calculado_negativo' %}selected{% endif %}>Uso maior que créditos</option>
+        <option value="ok" {% if filtro == 'ok' %}selected{% endif %}>Sem divergência</option>
+      </select></div>
+      <label class="checkbox"><input type="checkbox" name="inativos" value="1" {% if incluir_inativos %}checked{% endif %}> Incluir inativos</label>
+      <button class="filter-button" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Filtrar</button>
+    </form>
+
+    <section aria-label="Resultados da auditoria">
+      <div class="result-heading"><h2>Servidores</h2><span>{{ linhas|length }} exibido(s)</span></div>
+      <div class="table-wrap">
+        {% if linhas %}
+        <table>
+          <caption class="sr-only">Créditos, consumo e comparação de saldo por servidor</caption>
+          <thead><tr><th scope="col">Servidor</th><th scope="col">Créditos</th><th scope="col">Usufruído</th><th scope="col">Em espera</th><th scope="col">Gravado</th><th scope="col">Calculado</th><th scope="col">Utilizável</th><th scope="col">Diferença</th><th scope="col">Situação</th></tr></thead>
+          <tbody>
+          {% for linha in linhas %}
+            {% set r = linha.resumo %}
+            {% set diferenca = r.saldo_calculado_min - r.saldo_gravado_min %}
+            <tr>
+              <td><span class="name">{{ linha.usuario.nome }}</span><span class="registry">{{ linha.usuario.registro }}{% if not linha.usuario.ativo %} · Inativo{% endif %}</span></td>
+              <td>{{ formatar_bh_minutos(r.creditos_min) }}</td>
+              <td>{{ formatar_bh_minutos(r.debitos_min) }}</td>
+              <td>{{ formatar_bh_minutos(r.pendentes_min) }}</td>
+              <td>{{ formatar_bh_minutos(r.saldo_gravado_min) }}</td>
+              <td>{{ formatar_bh_minutos(r.saldo_calculado_min) }}</td>
+              <td>{{ formatar_bh_minutos(r.saldo_utilizavel_min) }}</td>
+              <td class="{% if diferenca > 0 %}delta-positive{% elif diferenca < 0 %}delta-negative{% endif %}">{{ formatar_bh_minutos(diferenca, true) }}</td>
+              <td><span class="state state-{{ linha.situacao }}">{% if linha.situacao == 'gravado_menor' %}Gravado menor{% elif linha.situacao == 'gravado_maior' %}Gravado maior{% elif linha.situacao == 'calculado_negativo' %}Uso maior que créditos{% else %}Conferido{% endif %}</span></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+          <div class="empty"><i class="fas fa-check-circle" aria-hidden="true"></i>Nenhum servidor encontrado para este filtro.</div>
+        {% endif %}
+      </div>
+    </section>
+  </main>
+  <footer>&copy; 2026 - Desenvolvido por Nilson Cruz | Todos os direitos reservados</footer>
+</body>
+</html>
